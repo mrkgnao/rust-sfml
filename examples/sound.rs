@@ -14,7 +14,7 @@ fn play_sound() {
     println!(" {} samples / sec", buffer.get_sample_rate());
     println!(" {} channels", buffer.get_channel_count());
 
-    let mut sound = Sound::new_with_buffer(&buffer).unwrap();
+    let mut sound = Sound::with_buffer(&buffer);
     sound.play();
 
     while sound.get_status() == SoundStatus::Playing {
@@ -30,7 +30,7 @@ fn play_sound() {
 
 // Play a Music
 fn play_music() {
-    let mut music = Music::new_from_file("resources/orchestral.ogg").unwrap();
+    let mut music = Music::from_file("resources/orchestral.ogg").unwrap();
 
     // Display Music informations
     println!("orchestral.ogg :");

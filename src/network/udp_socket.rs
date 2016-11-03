@@ -1,57 +1,51 @@
-/*
-* Rust-SFML - Copyright (c) 2013 Letang Jeremy.
-*
-* The original software, SFML library, is provided by Laurent Gomila.
-*
-* This software is provided 'as-is', without any express or implied warranty.
-* In no event will the authors be held liable for any damages arising from
-* the use of this software.
-*
-* Permission is granted to anyone to use this software for any purpose,
-* including commercial applications, and to alter it and redistribute it
-* freely, subject to the following restrictions:
-*
-* 1. The origin of this software must not be misrepresented; you must not claim
-*    that you wrote the original software. If you use this software in a product,
-*    an acknowledgment in the product documentation would be appreciated but is
-*    not required.
-*
-* 2. Altered source versions must be plainly marked as such, and must not be
-*    misrepresented as being the original software.
-*
-* 3. This notice may not be removed or altered from any source distribution.
-*/
+// Rust-SFML - Copyright (c) 2013 Letang Jeremy.
+//
+// The original software, SFML library, is provided by Laurent Gomila.
+//
+// This software is provided 'as-is', without any express or implied warranty.
+// In no event will the authors be held liable for any damages arising from
+// the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not claim
+//    that you wrote the original software. If you use this software in a product,
+//    an acknowledgment in the product documentation would be appreciated but is
+//    not required.
+//
+// 2. Altered source versions must be plainly marked as such, and must not be
+//    misrepresented as being the original software.
+//
+// 3. This notice may not be removed or altered from any source distribution.
+//
 
 //! Specialized socket using the UDP protocol
 
-use std::{ptr, slice, mem};
+use std::{ptr, mem};
 use libc::size_t;
-use std::vec::Vec;
 
 use raw_conv::{Raw, FromRaw};
 use network::{Packet, IpAddress, SocketStatus};
 
-use sfml_types::sfBool;
+use csfml_system_sys::sfBool;
 use csfml_network_sys as ffi;
+use ext::sf_bool_ext::SfBoolExt;
 
 /// Specialized socket using the UDP protocol.
 pub struct UdpSocket {
-    socket: *mut ffi::sfUdpSocket
+    socket: *mut ffi::sfUdpSocket,
 }
 
 impl UdpSocket {
     /// Create a new UDP socket
-    ///
-    /// Return Some(UdpSocket) or None
-    pub fn new() -> Option<UdpSocket> {
+    pub fn new() -> UdpSocket {
         let udp = unsafe { ffi::sfUdpSocket_create() };
         if udp.is_null() {
-            None
-        }
-        else {
-            Some(UdpSocket {
-                socket: udp
-            })
+            panic!("sfUdpSocket_create returned null.")
+        } else {
+            UdpSocket { socket: udp }
         }
     }
 
@@ -69,9 +63,7 @@ impl UdpSocket {
     /// #Arguments
     /// blocking - true to set the socket as blocking, false for non-blocking
     pub fn set_blocking(&self, blocking: bool) {
-        unsafe {
-            ffi::sfUdpSocket_setBlocking(self.socket, sfBool::from_bool(blocking))
-        }
+        unsafe { ffi::sfUdpSocket_setBlocking(self.socket, sfBool::from_bool(blocking)) }
     }
 
     /// Tell whether a UDP socket is in blocking or non-blocking mode
@@ -88,9 +80,7 @@ impl UdpSocket {
     ///
     /// Return the port to which the socket is bound
     pub fn get_local_port(&self) -> u16 {
-        unsafe {
-            ffi::sfUdpSocket_getLocalPort(self.socket)
-        }
+        unsafe { ffi::sfUdpSocket_getLocalPort(self.socket) }
     }
 
     /// Bind a UDP socket to a specific port
@@ -106,9 +96,7 @@ impl UdpSocket {
     ///
     /// Return the tatus code
     pub fn bind(&self, port: u16) -> SocketStatus {
-        unsafe {
-            mem::transmute(ffi::sfUdpSocket_bind(self.socket, port) as i32)
-        }
+        unsafe { mem::transmute(ffi::sfUdpSocket_bind(self.socket, port) as i32) }
     }
 
     /// Unbind a UDP socket from the local port to which it is bound
@@ -117,9 +105,7 @@ impl UdpSocket {
     /// available after this function is called. If the
     /// socket is not bound to a port, this function has no effect.
     pub fn unbind(&self) {
-        unsafe {
-            ffi::sfUdpSocket_unbind(self.socket)
-        }
+        unsafe { ffi::sfUdpSocket_unbind(self.socket) }
     }
 
     /// Send raw data to a remote peer with a UDP socket
@@ -134,7 +120,11 @@ impl UdpSocket {
     /// * remotePort - Port of the receiver to send the data to
     pub fn send(&self, data: &[i8], address: &IpAddress, port: u16) -> SocketStatus {
         unsafe {
-            mem::transmute(ffi::sfUdpSocket_send(self.socket, data.as_ptr() as *mut i8, data.len() as size_t, address.raw(), port) as i32)
+            mem::transmute(ffi::sfUdpSocket_send(self.socket,
+                                                 data.as_ptr() as *const _,
+                                                 data.len() as size_t,
+                                                 address.raw(),
+                                                 port) as i32)
         }
     }
 
@@ -149,14 +139,22 @@ impl UdpSocket {
     ///
     /// # Arguments
     /// * size - Maximum number of bytes that can be received
-    pub fn receive(&self, max_size: size_t) -> (Vec<i8>, SocketStatus, size_t, IpAddress, u16) {
+    ///
+    /// Returns the socket status, the actual number of bytes received, the ip address of the
+    /// sender, and the port of the sender.
+    pub fn receive(&self, destination: &mut [u8]) -> (SocketStatus, usize, IpAddress, u16) {
         unsafe {
-            let mut s: size_t = 0;
-            let datas: *mut i8 = ptr::null_mut();
-            let addr: *mut ffi::sfIpAddress = ptr::null_mut();
-            let mut port: u16 = 0;
-            let stat: SocketStatus = mem::transmute(ffi::sfUdpSocket_receive(self.socket, datas, max_size, &mut s, addr, &mut port) as i32);
-            (slice::from_raw_parts(datas, s as usize).to_vec(), stat, s, IpAddress::from_raw(*addr), port)
+            let mut actual_read_len = 0;
+            let mut addr = ffi::sfIpAddress::default();
+            let mut port = 0;
+            let status = ffi::sfUdpSocket_receive(self.socket,
+                                                  destination.as_mut_ptr() as *mut _,
+                                                  destination.len(),
+                                                  &mut actual_read_len,
+                                                  &mut addr,
+                                                  &mut port);
+            let status = mem::transmute(status);
+            (status, actual_read_len, IpAddress::from_raw(addr), port)
         }
     }
 
@@ -172,7 +170,10 @@ impl UdpSocket {
     /// * remotePort - Port of the receiver to send the data to
     pub fn send_packet(&self, packet: &Packet, address: &IpAddress, port: u16) -> SocketStatus {
         unsafe {
-            mem::transmute(ffi::sfUdpSocket_sendPacket(self.socket, packet.raw(), address.raw(), port) as i32)
+            mem::transmute(ffi::sfUdpSocket_sendPacket(self.socket,
+                                                       packet.raw(),
+                                                       address.raw(),
+                                                       port) as i32)
         }
     }
 
@@ -185,8 +186,8 @@ impl UdpSocket {
             let pack: *mut ffi::sfPacket = ptr::null_mut();
             let addr: *mut ffi::sfIpAddress = ptr::null_mut();
             let mut port: u16 = 0;
-            let stat: SocketStatus = mem::transmute(ffi::sfUdpSocket_receivePacket(self.socket, pack, addr, &mut port) as i32);
-            (Packet::from_raw(pack), stat, IpAddress::from_raw(*addr), port)
+            let status = ffi::sfUdpSocket_receivePacket(self.socket, pack, addr, &mut port);
+            (Packet::from_raw(pack), mem::transmute(status), IpAddress::from_raw(*addr), port)
         }
     }
 
@@ -195,16 +196,18 @@ impl UdpSocket {
     ///
     /// Return the maximum size of a UDP datagram (message)
     pub fn max_datagram_size() -> u32 {
-        unsafe {
-            ffi::sfUdpSocket_maxDatagramSize()
-        }
+        unsafe { ffi::sfUdpSocket_maxDatagramSize() }
+    }
+}
+
+impl Default for UdpSocket {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
 impl Drop for UdpSocket {
     fn drop(&mut self) {
-        unsafe {
-            ffi::sfUdpSocket_destroy(self.socket)
-        }
+        unsafe { ffi::sfUdpSocket_destroy(self.socket) }
     }
 }

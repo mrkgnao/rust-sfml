@@ -1,26 +1,25 @@
-/*
-* Rust-SFML - Copyright (c) 2013 Letang Jeremy.
-*
-* The original software, SFML library, is provided by Laurent Gomila.
-*
-* This software is provided 'as-is', without any express or implied warranty.
-* In no event will the authors be held liable for any damages arising from
-* the use of this software.
-*
-* Permission is granted to anyone to use this software for any purpose,
-* including commercial applications, and to alter it and redistribute it
-* freely, subject to the following restrictions:
-*
-* 1. The origin of this software must not be misrepresented; you must not claim
-*    that you wrote the original software. If you use this software in a product,
-*    an acknowledgment in the product documentation would be appreciated but is
-*    not required.
-*
-* 2. Altered source versions must be plainly marked as such, and must not be
-*    misrepresented as being the original software.
-*
-* 3. This notice may not be removed or altered from any source distribution.
-*/
+// Rust-SFML - Copyright (c) 2013 Letang Jeremy.
+//
+// The original software, SFML library, is provided by Laurent Gomila.
+//
+// This software is provided 'as-is', without any express or implied warranty.
+// In no event will the authors be held liable for any damages arising from
+// the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not claim
+//    that you wrote the original software. If you use this software in a product,
+//    an acknowledgment in the product documentation would be appreciated but is
+//    not required.
+//
+// 2. Altered source versions must be plainly marked as such, and must not be
+//    misrepresented as being the original software.
+//
+// 3. This notice may not be removed or altered from any source distribution.
+//
 
 //! Utility class for manpulating RGBA colors
 //!
@@ -34,10 +33,10 @@ use csfml_graphics_sys as ffi;
 ///
 /// sfColor is a simple color class composed of 4 components: Red, Green, Blue, Alpha
 #[repr(C)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub struct Color(pub ffi::sfColor);
 
 impl Color {
-
     /// Construct a color from its 3 RGB components
     ///
     /// # Arguments
@@ -48,10 +47,10 @@ impl Color {
     /// Return Color object constructed from the components
     pub fn new_rgb(red: u8, green: u8, blue: u8) -> Color {
         Color(ffi::sfColor {
-            red: red,
-            green: green,
-            blue: blue,
-            alpha: 255
+            r: red,
+            g: green,
+            b: blue,
+            a: 255,
         })
     }
 
@@ -66,33 +65,11 @@ impl Color {
     /// Return Color object constructed from the components
     pub fn new_rgba(red: u8, green: u8, blue: u8, alpha: u8) -> Color {
         Color(ffi::sfColor {
-            red: red,
-            green: green,
-            blue: blue,
-            alpha: alpha
+            r: red,
+            g: green,
+            b: blue,
+            a: alpha,
         })
-    }
-
-    /// Add two colors
-    ///
-    /// # Arguments
-    /// * color1 - The first color
-    /// * color2 - The second color
-    ///
-    /// Return the component-wise saturated addition of the two colors
-    pub fn add(color1: Color, color2: Color) -> Color {
-        Color(unsafe {ffi::sfColor_add(color1.0, color2.0)})
-    }
-
-    /// Modulate two colors
-    ///
-    /// # Arguments
-    /// * color1 - The first color
-    /// * color2 - The second color
-    ///
-    /// Return the component-wise multiplication of the two colors
-    pub fn modulate(color1: Color, color2: Color) -> Color {
-        Color(unsafe {ffi::sfColor_modulate(color1.0, color2.0)})
     }
 
     /// Black predefined color
@@ -139,39 +116,24 @@ impl Color {
     pub fn transparent() -> Color {
         Color::new_rgba(0, 0, 0, 0)
     }
-
 }
 
 impl Add for Color {
     type Output = Color;
 
+    /// Calculate the component-wise saturated addition of two colors.
     fn add(self, other: Color) -> Color {
-        let r: i32 = self.0.red as i32 + other.0.red as i32;
-        let g: i32 = self.0.green as i32 + other.0.green as i32;
-        let b: i32 = self.0.blue as i32 + other.0.blue as i32;
-        let a: i32 = self.0.alpha as i32 + other.0.alpha as i32;
-        Color(ffi::sfColor {
-            red: if r > 255 {255} else {r as u8},
-            green: if g > 255 {255} else {g as u8},
-            blue: if b > 255 {255} else {b as u8},
-            alpha: if a > 255 {255} else {a as u8}
-        })
+        Color(unsafe { ffi::sfColor_add(self.0, other.0) })
     }
 }
 
 impl Mul for Color {
     type Output = Color;
 
+    /// Calculate the component-wise modulated multiplication of two colors.
+    ///
+    /// For each `X` in `rgba`, `result.X = a.X * b.X / 255`.
     fn mul(self, other: Color) -> Color {
-        let r: i32 = self.0.red as i32 * (other.0.red as i32);
-        let g: i32 = self.0.green as i32 * (other.0.green as i32);
-        let b: i32 = self.0.blue as i32 * (other.0.blue as i32);
-        let a: i32 = self.0.alpha as i32 * (other.0.alpha as i32);
-        Color(ffi::sfColor {
-            red: if r > 255 {255} else {r as u8},
-            green: if g > 255 {255} else {g as u8},
-            blue: if b > 255 {255} else {b as u8},
-            alpha: if a > 255 {255} else {a as u8}
-        })
+        Color(unsafe { ffi::sfColor_modulate(self.0, other.0) })
     }
 }

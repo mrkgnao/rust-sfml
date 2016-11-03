@@ -1,26 +1,25 @@
-/*
-* Rust-SFML - Copyright (c) 2013 Letang Jeremy.
-*
-* The original software, SFML library, is provided by Laurent Gomila.
-*
-* This software is provided 'as-is', without any express or implied warranty.
-* In no event will the authors be held liable for any damages arising from
-* the use of this software.
-*
-* Permission is granted to anyone to use this software for any purpose,
-* including commercial applications, and to alter it and redistribute it
-* freely, subject to the following restrictions:
-*
-* 1. The origin of this software must not be misrepresented; you must not claim
-*    that you wrote the original software. If you use this software in a product,
-*    an acknowledgment in the product documentation would be appreciated but is
-*    not required.
-*
-* 2. Altered source versions must be plainly marked as such, and must not be
-*    misrepresented as being the original software.
-*
-* 3. This notice may not be removed or altered from any source distribution.
-*/
+// Rust-SFML - Copyright (c) 2013 Letang Jeremy.
+//
+// The original software, SFML library, is provided by Laurent Gomila.
+//
+// This software is provided 'as-is', without any express or implied warranty.
+// In no event will the authors be held liable for any damages arising from
+// the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not claim
+//    that you wrote the original software. If you use this software in a product,
+//    an acknowledgment in the product documentation would be appreciated but is
+//    not required.
+//
+// 2. Altered source versions must be plainly marked as such, and must not be
+//    misrepresented as being the original software.
+//
+// 3. This notice may not be removed or altered from any source distribution.
+//
 
 //! A HTTP client
 
@@ -34,105 +33,98 @@ use system::Time;
 use csfml_network_sys as ffi;
 
 /// Method type to send the request
-#[repr(i32)]
+#[repr(u32)]
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Copy)]
 pub enum Method {
-    /// Request in get mode, standard method to retrieve a page
-    Get = ffi::GET as i32,
-    /// Request in post mode, usually to send data to a page
-    Post = ffi::POST as i32,
-    /// Request a page's header only
-    Head = ffi::HEAD as i32
+    /// Request in get mode, standard method to retrieve a page.
+    Get = 0,
+    /// Request in post mode, usually to send data to a page.
+    Post = 1,
+    /// Request a page's header only.
+    Head = 2,
+    /// Request in put mode, useful for a REST API.
+    Put = 3,
+    /// Request in delete mode, useful for a REST API.
+    Delete = 4,
 }
 
 /// Status code returned by a serveur.
-#[repr(i32)]
+#[repr(u32)]
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug, Copy)]
 pub enum Status {
-    // 2xx: success
-    /// Most common code returned when operation was successful
-    Ok                  = ffi::sfHttpOk as i32,
-    /// The resource has successfully been created
-    Created             = ffi::CREATED as i32,
-    /// The request has been accepted, but will be processed later by the server
-    Accepted            = ffi::ACCEPTED as i32,
-    /// Sent when the server didn't send any data in return
-    NoContent           = ffi::NOCONTENT as i32,
-    /// The server informs the client that it should clear the view (form) that caused the request to be sent
-    ResetContent        = ffi::RESETCONTENT as i32,
-    /// The server has sent a part of the resource, as a response to a partial GET request
-    PartialContent      = ffi::PARTIALCONTENT as i32,
-
-    // 3xx: redirection
-    /// The requested page can be accessed from several locations
-    MultipleChoices     = ffi::MULTIPLECHOICES as i32,
-    /// The requested page has permanently moved to a new location
-    MovedPermanently    = ffi::MOVEDPERMANENTLY as i32,
-    /// The requested page has temporarily moved to a new location
-    MovedTemporarily    = ffi::MOVEDTEMPORARILY as i32,
-    /// For conditionnal requests, means the requested page hasn't changed and doesn't need to be refreshed
-    NotModified         = ffi::NOTMODIFIED as i32,
-
-    // 4xx: client error
+    /// Most common code returned when operation was successful.
+    Ok = 200,
+    /// The resource has successfully been created.
+    Created = 201,
+    /// The request has been accepted, but will be processed later by the server.
+    Accepted = 202,
+    /// The server didn't send any data in return.
+    NoContent = 204,
+    /// The server informs the client that it should clear the
+    /// view (form) that caused the request to be sent.
+    ResetContent = 205,
+    /// The server has sent a part of the resource, as a response to a partial GET request.
+    PartialContent = 206,
+    /// The requested page can be accessed from several locations.
+    MultipleChoices = 300,
+    /// The requested page has permanently moved to a new location.
+    MovedPermanently = 301,
+    /// The requested page has temporarily moved to a new location.
+    MovedTemporarily = 302,
+    /// For conditional requests, means the requested page
+    /// hasn't changed and doesn't need to be refreshed.
+    NotModified = 304,
     /// The server couldn't understand the request (syntax error)
-    BadRequest          = ffi::BADREQUEST as i32,
-    /// The requested page needs an authentification to be accessed
-    Unauthorized        = ffi::UNAUTHORIZED as i32,
-    /// The requested page cannot be accessed at all, even with authentification
-    Forbidden           = ffi::FORBIDDEN as i32,
-    /// The requested page doesn't exist
-    NotFound            = ffi::NOTFOUND as i32,
+    BadRequest = 400,
+    /// The requested page needs an authentication to be accessed.
+    Unauthorized = 401,
+    /// The requested page cannot be accessed at all, even with authentication.
+    Forbidden = 403,
+    /// The requested page doesn't exist.
+    NotFound = 404,
     /// The server can't satisfy the partial GET request (with a "Range" header field)
-    RangeNotSatisfiable = ffi::RANGENOTSATISFIABLE as i32,
-
-    // 5xx: server error
-    /// The server encountered an unexpected error
-    InternalServerError = ffi::INTERNALSERVERERROR as i32,
-    /// The server doesn't implement a requested feature
-    NotImplemented      = ffi::NOTIMPLEMENTED as i32,
-    /// The gateway server has received an error from the source server
-    BadGateway          = ffi::BADGATEWAY as i32,
+    RangeNotSatisfiable = 407,
+    /// The server encountered an unexpected error.
+    InternalServerError = 500,
+    /// The server doesn't implement a requested feature.
+    NotImplemented = 501,
+    /// The gateway server has received an error from the source server.
+    BadGateway = 502,
     /// The server is temporarily unavailable (overloaded, in maintenance, ...)
-    ServiceNotAvailable = ffi::SERVICENOTAVAILABLE as i32,
-    /// The gateway server couldn't receive a response from the source server
-    GatewayTimeout      = ffi::GATEWAYTIMEOUT as i32,
-    /// The server doesn't support the requested HTTP version
-    VersionNotSupported = ffi::VERSIONNOTSUPPORTED as i32,
-
-    // 10xx: SFML custom codes
-    /// Response is not a valid HTTP one
-    InvalidResponse     = ffi::sfHttpInvalidResponse as i32,
-    /// Connection with server failed
-    ConnectionFailed    = ffi::sfHttpConnectionFailed as i32
+    ServiceNotAvailable = 503,
+    /// The gateway server couldn't receive a response from the source server.
+    GatewayTimeout = 504,
+    /// The server doesn't support the requested HTTP version.
+    VersionNotSupported = 505,
+    /// Response is not a valid HTTP one.
+    InvalidResponse = 1000,
+    /// Connection with server failed.
+    ConnectionFailed = 1001,
 }
 
 /// Encapsulation of an HTTP request
 pub struct Request {
-    request: *mut ffi::sfHttpRequest
+    request: *mut ffi::sfHttpRequest,
 }
 
 /// Encapsulation of an HTTP response
 pub struct Response {
-    response: *mut ffi::sfHttpResponse
+    response: *mut ffi::sfHttpResponse,
 }
 
 /// The HTTP client.
 pub struct Http {
-    http: *mut ffi::sfHttp
+    http: *mut ffi::sfHttp,
 }
 
 impl Request {
     /// Create a new HTTP request
-    ///
-    /// Return Some(Request) or None
-    pub fn new() -> Option<Request> {
+    pub fn new() -> Request {
         let ptr = unsafe { ffi::sfHttpRequest_create() };
         if ptr.is_null() {
-            None
+            panic!("sfHttpRequest_create returned null.")
         } else {
-            Some(Request {
-                request: ptr
-            })
+            Request { request: ptr }
         }
     }
 
@@ -150,11 +142,7 @@ impl Request {
     pub fn set_field(&self, field: &str, value: &str) {
         let c_field = CString::new(field.as_bytes()).unwrap();
         let c_value = CString::new(value.as_bytes()).unwrap();
-        unsafe {
-            ffi::sfHttpRequest_setField(self.request,
-                                        c_field.as_ptr(),
-                                        c_value.as_ptr())
-        }
+        unsafe { ffi::sfHttpRequest_setField(self.request, c_field.as_ptr(), c_value.as_ptr()) }
     }
 
     /// Set a HTTP request method
@@ -166,9 +154,7 @@ impl Request {
     /// # Arguments
     /// * method - Method to use for the request
     pub fn set_method(&self, method: Method) {
-        unsafe {
-            ffi::sfHttpRequest_setMethod(self.request, method as ffi::Method)
-        }
+        unsafe { ffi::sfHttpRequest_setMethod(self.request, ::std::mem::transmute(method)) }
     }
 
     /// Set a HTTP request URI
@@ -181,9 +167,7 @@ impl Request {
     /// * uri - URI to request, relative to the host
     pub fn set_uri(&self, uri: &str) {
         let c_uri = CString::new(uri.as_bytes()).unwrap();
-        unsafe {
-            ffi::sfHttpRequest_setUri(self.request, c_uri.as_ptr())
-        }
+        unsafe { ffi::sfHttpRequest_setUri(self.request, c_uri.as_ptr()) }
     }
 
     /// Set the HTTP version of a HTTP request
@@ -194,9 +178,7 @@ impl Request {
     /// * major - Major HTTP version number
     /// * param minor - Minor HTTP version number
     pub fn set_http_version(&self, major: u32, minor: u32) {
-        unsafe {
-            ffi::sfHttpRequest_setHttpVersion(self.request, major, minor)
-        }
+        unsafe { ffi::sfHttpRequest_setHttpVersion(self.request, major, minor) }
     }
 
     /// Set the body of a HTTP request
@@ -208,9 +190,13 @@ impl Request {
     /// * body - Content of the body
     pub fn set_body(&self, body: &str) {
         let c_body = CString::new(body.as_bytes()).unwrap();
-        unsafe {
-            ffi::sfHttpRequest_setBody(self.request, c_body.as_ptr())
-        }
+        unsafe { ffi::sfHttpRequest_setBody(self.request, c_body.as_ptr()) }
+    }
+}
+
+impl Default for Request {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -223,9 +209,7 @@ impl Raw for Request {
 
 impl Drop for Request {
     fn drop(&mut self) {
-        unsafe {
-            ffi::sfHttpRequest_destroy(self.request)
-        }
+        unsafe { ffi::sfHttpRequest_destroy(self.request) }
     }
 }
 
@@ -257,27 +241,21 @@ impl Response {
     ///
     /// Return the status code
     pub fn get_status(&self) -> Status {
-        unsafe {
-            mem::transmute(ffi::sfHttpResponse_getStatus(self.response) as i32)
-        }
+        unsafe { mem::transmute(ffi::sfHttpResponse_getStatus(self.response) as i32) }
     }
 
     /// Get the major HTTP version number of a HTTP response
     ///
     /// Return Major HTTP version number
     pub fn get_major_version(&self) -> u32 {
-        unsafe {
-            ffi::sfHttpResponse_getMajorVersion(self.response)
-        }
+        unsafe { ffi::sfHttpResponse_getMajorVersion(self.response) }
     }
 
     /// Get the minor HTTP version number of a HTTP response
     ///
     /// Return the minor HTTP version number
     pub fn get_minor_version(&self) -> u32 {
-        unsafe {
-            ffi::sfHttpResponse_getMinorVersion(self.response)
-        }
+        unsafe { ffi::sfHttpResponse_getMinorVersion(self.response) }
     }
 
     /// Get the body of a HTTP response
@@ -299,24 +277,18 @@ impl Response {
 
 impl Drop for Response {
     fn drop(&mut self) {
-        unsafe {
-            ffi::sfHttpResponse_destroy(self.response)
-        }
+        unsafe { ffi::sfHttpResponse_destroy(self.response) }
     }
 }
 
 impl Http {
     /// Create a new Http object
-    ///
-    /// Return Some(Http) or None
-    pub fn new() -> Option<Http> {
-        let ptr = unsafe{ ffi::sfHttp_create() };
+    pub fn new() -> Http {
+        let ptr = unsafe { ffi::sfHttp_create() };
         if ptr.is_null() {
-            None
+            panic!("sfHttp_create returned null.")
         } else {
-            Some(Http {
-                http: ptr
-            })
+            Http { http: ptr }
         }
     }
 
@@ -335,9 +307,7 @@ impl Http {
     /// * port - Port to use for connection
     pub fn set_host(&self, host: &str, port: u16) {
         let c_host = CString::new(host.as_bytes()).unwrap();
-        unsafe {
-            ffi::sfHttp_setHost(self.http, c_host.as_ptr(), port)
-        }
+        unsafe { ffi::sfHttp_setHost(self.http, c_host.as_ptr(), port) }
     }
 
     /// Send a HTTP request and return the server's response.
@@ -356,15 +326,19 @@ impl Http {
     /// * timeout - Maximum time to wait
     pub fn send_request(&self, request: &Request, timeout: &Time) -> Response {
         Response {
-            response: unsafe { ffi::sfHttp_sendRequest(self.http, request.raw(), timeout.raw()) }
+            response: unsafe { ffi::sfHttp_sendRequest(self.http, request.raw(), timeout.raw()) },
         }
+    }
+}
+
+impl Default for Http {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
 impl Drop for Http {
     fn drop(&mut self) {
-        unsafe {
-            ffi::sfHttp_destroy(self.http)
-        }
+        unsafe { ffi::sfHttp_destroy(self.http) }
     }
 }

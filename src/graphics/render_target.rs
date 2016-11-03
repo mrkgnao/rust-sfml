@@ -1,45 +1,44 @@
-/*
-* Rust-SFML - Copyright (c) 2013 Letang Jeremy.
-*
-* The original software, SFML library, is provided by Laurent Gomila.
-*
-* This software is provided 'as-is', without any express or implied warranty.
-* In no event will the authors be held liable for any damages arising from
-* the use of this software.
-*
-* Permission is granted to anyone to use this software for any purpose,
-* including commercial applications, and to alter it and redistribute it
-* freely, subject to the following restrictions:
-*
-* 1. The origin of this software must not be misrepresented; you must not claim
-*    that you wrote the original software. If you use this software in a product,
-*    an acknowledgment in the product documentation would be appreciated but is
-*    not required.
-*
-* 2. Altered source versions must be plainly marked as such, and must not be
-*    misrepresented as being the original software.
-*
-* 3. This notice may not be removed or altered from any source distribution.
-*/
+// Rust-SFML - Copyright (c) 2013 Letang Jeremy.
+//
+// The original software, SFML library, is provided by Laurent Gomila.
+//
+// This software is provided 'as-is', without any express or implied warranty.
+// In no event will the authors be held liable for any damages arising from
+// the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not claim
+//    that you wrote the original software. If you use this software in a product,
+//    an acknowledgment in the product documentation would be appreciated but is
+//    not required.
+//
+// 2. Altered source versions must be plainly marked as such, and must not be
+//    misrepresented as being the original software.
+//
+// 3. This notice may not be removed or altered from any source distribution.
+//
 
-//Authored on 2014-08-30 by Brandon Sanderson
+// Authored on 2014-08-30 by Brandon Sanderson
 
-use graphics::{Drawable, Color, View, RenderStates, CircleShape, RectangleShape, Text, Sprite, VertexArray,
-               IntRect, Vertex, PrimitiveType, ConvexShape, CustomShape};
-use sfml_types::{Vector2f, Vector2i, Vector2u};
+use graphics::{Drawable, Color, View, ViewRef, RenderStates, CircleShape, RectangleShape, Text,
+               Sprite, VertexArray, IntRect, Vertex, PrimitiveType, ConvexShape, CustomShape};
+use system::{Vector2f, Vector2i, Vector2u};
 
-/// Trait which is the equivalent of the sf::RenderTarget class in SFML.
-/// This is implemented by RenderTarget and RenderWindow structs to provide
+/// Trait which is the equivalent of the `sf::RenderTarget` class in SFML.
+/// This is implemented by `RenderTarget` and `RenderWindow` structs to provide
 /// a unified interface for rendering.
 pub trait RenderTarget {
     /// clear the screen
     fn clear(&mut self, color: &Color);
 
     /// return the current view
-    fn get_view(&self) -> View;
+    fn get_view(&self) -> &ViewRef;
 
     /// get the default view for the render target
-    fn get_default_view(&self) -> View;
+    fn get_default_view(&self) -> &ViewRef;
 
     /// set a new view to the target
     fn set_view(&mut self, view: &View);
@@ -74,7 +73,7 @@ pub trait RenderTarget {
     /// * view - The view to use for converting the point
     ///
     /// Return the converted point, in "world" units
-    ////
+    ///
     fn map_pixel_to_coords(&self, point: &Vector2i, view: &View) -> Vector2f;
 
     /// Convert a point from window coordinates to world coordinates
@@ -94,7 +93,8 @@ pub trait RenderTarget {
     /// located below the mouse cursor.
     ///
     /// This version uses the current view for calculations, see the
-    /// [map_pixel_to_coords](#method.map_pixel_to_coords) function if you want to use a custom view.
+    /// [map_pixel_to_coords](#method.map_pixel_to_coords) function if
+    /// you want to use a custom view.
     ///
     /// # Arguments
     /// * point - Pixel to convert
@@ -142,7 +142,8 @@ pub trait RenderTarget {
     /// located below the mouse cursor.
     ///
     /// This version uses the current view for calculations, see the
-    /// [map_pixel_to_coords](#method.map_pixel_to_coords) function if you want to use a custom view.
+    /// [map_pixel_to_coords](#method.map_pixel_to_coords) function if
+    /// you want to use a custom view.
     ///
     /// # Arguments
     /// * point - Pixel to convert
@@ -164,15 +165,6 @@ pub trait RenderTarget {
     fn draw_with_renderstates<T: Drawable>(&mut self,
                                            object: &T,
                                            render_states: &mut RenderStates);
-
-    /// Draw a drawable object to the render-target with a RenderStates
-    ///
-    /// # Arguments
-    /// * object - Object to draw
-    /// * renderStates - The renderStates to associate to the object
-    // fn draw_with_renderstates_rc<T: Drawable>(&mut self,
-    //                                           object: &T,
-    //                                           render_states: &mut rc::RenderStates);
 
     /// Get the size of the rendering region of a window
     ///
@@ -213,45 +205,27 @@ pub trait RenderTarget {
     fn reset_gl_states(&mut self);
 
     /// Draw Text
-    fn draw_text(&self,
-                 text: &Text,
-                 rs: &mut RenderStates);
+    fn draw_text(&self, text: &Text, rs: &mut RenderStates);
 
     /// Draw Shape
-    fn draw_shape(&self,
-                  shape: &CustomShape,
-                  rs: &mut RenderStates);
+    fn draw_shape(&self, shape: &CustomShape, rs: &mut RenderStates);
 
     /// Draw Sprite
-    fn draw_sprite(&self,
-                   sprite: &Sprite,
-                   rs: &mut RenderStates);
+    fn draw_sprite(&self, sprite: &Sprite, rs: &mut RenderStates);
 
     /// Draw CircleShape
-    fn draw_circle_shape(&self,
-                         circle_shape: &CircleShape,
-                         rs: &mut RenderStates);
+    fn draw_circle_shape(&self, circle_shape: &CircleShape, rs: &mut RenderStates);
 
 
     /// Draw RectangleShape
-    fn draw_rectangle_shape(&self,
-                            rectangle_shape: &RectangleShape,
-                            rs: &mut RenderStates);
+    fn draw_rectangle_shape(&self, rectangle_shape: &RectangleShape, rs: &mut RenderStates);
 
     /// Draw ConvexShape
-    fn draw_convex_shape(&self,
-                         convex_shape: &ConvexShape,
-                         rs: &mut RenderStates);
+    fn draw_convex_shape(&self, convex_shape: &ConvexShape, rs: &mut RenderStates);
 
     /// Draw VertexArray
-    fn draw_vertex_array(&self,
-                         vertex_array: &VertexArray,
-                         rs: &mut RenderStates);
+    fn draw_vertex_array(&self, vertex_array: &VertexArray, rs: &mut RenderStates);
 
     /// draw primitives
-    fn draw_primitives(&self,
-                       vertices: &[Vertex],
-                       ty: PrimitiveType,
-                       rs: &mut RenderStates);
-
+    fn draw_primitives(&self, vertices: &[Vertex], ty: PrimitiveType, rs: &mut RenderStates);
 }

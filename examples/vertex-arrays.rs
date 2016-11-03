@@ -1,50 +1,50 @@
 extern crate sfml;
 
 use sfml::graphics::{Color, LinesStrip, RenderTarget, RenderWindow, Vertex, VertexArray};
-use sfml::window::{VideoMode, event, window_style};
 use sfml::system::Vector2f;
+use sfml::window::{VideoMode, Event, window_style};
 
 fn main() {
     let mut window = RenderWindow::new(VideoMode::new_init(800, 600, 32),
                                        "SFML VertexArray accessors Example",
                                        window_style::CLOSE,
                                        &Default::default())
-                         .unwrap();
+        .unwrap();
     window.set_vertical_sync_enabled(true);
 
-    let mut vertex_array = VertexArray::new().unwrap();
+    let mut vertex_array = VertexArray::new();
     vertex_array.set_primitive_type(LinesStrip);
 
-    vertex_array.append(&Vertex::new_with_pos_color(&Vector2f {
-                                                        x: 20f32,
-                                                        y: 30f32,
-                                                    },
-                                                    &Color::green()));
-    vertex_array.append(&Vertex::new_with_pos_color(&Vector2f {
-                                                        x: 30f32,
-                                                        y: 30f32,
-                                                    },
-                                                    &Color::green()));
-    vertex_array.append(&Vertex::new_with_pos_color(&Vector2f {
-                                                        x: 40f32,
-                                                        y: 40f32,
-                                                    },
-                                                    &Color::green()));
-    vertex_array.append(&Vertex::new_with_pos_color(&Vector2f {
-                                                        x: 50f32,
-                                                        y: 50f32,
-                                                    },
-                                                    &Color::green()));
-    vertex_array.append(&Vertex::new_with_pos_color(&Vector2f {
-                                                        x: 60f32,
-                                                        y: 60f32,
-                                                    },
-                                                    &Color::green()));
-    vertex_array.append(&Vertex::new_with_pos_color(&Vector2f {
-                                                        x: 50f32,
-                                                        y: 80f32,
-                                                    },
-                                                    &Color::green()));
+    vertex_array.append(&Vertex::with_pos_color(&Vector2f {
+                                                    x: 20f32,
+                                                    y: 30f32,
+                                                },
+                                                &Color::green()));
+    vertex_array.append(&Vertex::with_pos_color(&Vector2f {
+                                                    x: 30f32,
+                                                    y: 30f32,
+                                                },
+                                                &Color::green()));
+    vertex_array.append(&Vertex::with_pos_color(&Vector2f {
+                                                    x: 40f32,
+                                                    y: 40f32,
+                                                },
+                                                &Color::green()));
+    vertex_array.append(&Vertex::with_pos_color(&Vector2f {
+                                                    x: 50f32,
+                                                    y: 50f32,
+                                                },
+                                                &Color::green()));
+    vertex_array.append(&Vertex::with_pos_color(&Vector2f {
+                                                    x: 60f32,
+                                                    y: 60f32,
+                                                },
+                                                &Color::green()));
+    vertex_array.append(&Vertex::with_pos_color(&Vector2f {
+                                                    x: 50f32,
+                                                    y: 80f32,
+                                                },
+                                                &Color::green()));
 
     println!("\nIterate over the vertices of a VertexArray");
     for v in vertex_array.vertices() {
@@ -69,7 +69,7 @@ fn main() {
 
     loop {
         for e in window.events() {
-            if e == event::Closed {
+            if e == Event::Closed {
                 return;
             }
         }

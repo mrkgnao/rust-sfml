@@ -1,61 +1,59 @@
-/*
-* Rust-SFML - Copyright (c) 2013 Letang Jeremy.
-*
-* The original software, SFML library, is provided by Laurent Gomila.
-*
-* This software is provided 'as-is', without any express or implied warranty.
-* In no event will the authors be held liable for any damages arising from
-* the use of this software.
-*
-* Permission is granted to anyone to use this software for any purpose,
-* including commercial applications, and to alter it and redistribute it
-* freely, subject to the following restrictions:
-*
-* 1. The origin of this software must not be misrepresented; you must not claim
-*    that you wrote the original software. If you use this software in a product,
-*    an acknowledgment in the product documentation would be appreciated but is
-*    not required.
-*
-* 2. Altered source versions must be plainly marked as such, and must not be
-*    misrepresented as being the original software.
-*
-* 3. This notice may not be removed or altered from any source distribution.
-*/
+// Rust-SFML - Copyright (c) 2013 Letang Jeremy.
+//
+// The original software, SFML library, is provided by Laurent Gomila.
+//
+// This software is provided 'as-is', without any express or implied warranty.
+// In no event will the authors be held liable for any damages arising from
+// the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not claim
+//    that you wrote the original software. If you use this software in a product,
+//    an acknowledgment in the product documentation would be appreciated but is
+//    not required.
+//
+// 2. Altered source versions must be plainly marked as such, and must not be
+//    misrepresented as being the original software.
+//
+// 3. This notice may not be removed or altered from any source distribution.
+//
 
 //! Specialized shape representing a circle.
 
-use libc::{c_float, c_uint};
+use libc::c_float;
 use std::ptr;
 
-use raw_conv::Raw;
-use graphics::{Drawable, Transformable, Shape, IntRect, FloatRect, Color, Texture,
-               RenderTarget, Transform, RenderStates};
-use sfml_types::Vector2f;
+use raw_conv::{Raw, FromRaw};
+use graphics::{Drawable, Transformable, Shape, IntRect, FloatRect, Color, Texture, RenderTarget,
+               Transform, RenderStates};
+use system::Vector2f;
 
-use sfml_types::sfBool;
+use csfml_system_sys::{sfBool, sfTrue, sfVector2f};
 use csfml_graphics_sys as ffi;
-
-// pub mod rc;
+use ext::sf_bool_ext::SfBoolExt;
 
 /// Specialized shape representing a circle.
 pub struct CircleShape<'s> {
     circle_shape: *mut ffi::sfCircleShape,
-    texture: Option<&'s Texture>
+    texture: Option<&'s Texture>,
 }
 
 impl<'s> CircleShape<'s> {
     /// Create a new circle shape
     ///
     /// Return Some(CircleShape) or None
-    pub fn new() -> Option<CircleShape<'s>> {
+    pub fn new() -> CircleShape<'s> {
         let circle = unsafe { ffi::sfCircleShape_create() };
         if circle.is_null() {
-            None
+            panic!("sfCircleShape_create returned null.")
         } else {
-            Some(CircleShape {
-                    circle_shape: circle,
-                    texture: None
-                })
+            CircleShape {
+                circle_shape: circle,
+                texture: None,
+            }
         }
     }
 
@@ -65,18 +63,18 @@ impl<'s> CircleShape<'s> {
     /// * texture - The texture to initialize the CircleShape with.
     ///
     /// Return Some(CircleShape) or None
-    pub fn new_with_texture(texture: &'s Texture) -> Option<CircleShape<'s>> {
+    pub fn with_texture(texture: &'s Texture) -> CircleShape<'s> {
         let circle = unsafe { ffi::sfCircleShape_create() };
         if circle.is_null() {
-            None
+            panic!("sfCircleShape_create returned null.")
         } else {
             unsafe {
-                ffi::sfCircleShape_setTexture(circle, texture.raw(), sfBool::SFTRUE);
+                ffi::sfCircleShape_setTexture(circle, texture.raw(), sfTrue);
             }
-            Some(CircleShape {
-                    circle_shape: circle,
-                    texture: Some(texture)
-                })
+            CircleShape {
+                circle_shape: circle,
+                texture: Some(texture),
+            }
         }
     }
 
@@ -87,40 +85,19 @@ impl<'s> CircleShape<'s> {
     /// * point_count - The number of points to define the CircleShape
     ///
     /// Default value on SFML are radius = 0 / pointCount = 30
-    ///
-    /// Return Some(CircleShape) or None
-    pub fn new_init(radius: f32,
-                    point_count: u32) -> Option<CircleShape<'s>> {
+    pub fn new_init(radius: f32, point_count: u32) -> CircleShape<'s> {
         let circle = unsafe { ffi::sfCircleShape_create() };
         if circle.is_null() {
-            None
+            panic!("sfCircleShape_create returned null.")
         } else {
             unsafe {
                 ffi::sfCircleShape_setRadius(circle, radius as c_float);
-                ffi::sfCircleShape_setPointCount(circle, point_count as c_uint);
+                ffi::sfCircleShape_setPointCount(circle, point_count as usize);
             }
-            Some(CircleShape {
-                    circle_shape: circle,
-                    texture: None
-                })
-        }
-    }
-
-    /// Copy an existing circle shape
-    ///
-    /// # Arguments
-    /// * shape - Shape to copy
-    ///
-    /// Return Some(CircleShape) or None
-    pub fn clone_opt(&self) -> Option<CircleShape<'s>> {
-        let circle = unsafe { ffi::sfCircleShape_copy(self.circle_shape) };
-        if circle.is_null() {
-            None
-        } else {
-            Some(CircleShape {
-                    circle_shape: circle,
-                    texture: self.texture
-                })
+            CircleShape {
+                circle_shape: circle,
+                texture: None,
+            }
         }
     }
 
@@ -129,18 +106,14 @@ impl<'s> CircleShape<'s> {
     /// # Arguments
     /// * radius - New radius of the circle
     pub fn set_radius(&self, radius: f32) {
-        unsafe {
-            ffi::sfCircleShape_setRadius(self.circle_shape, radius as c_float)
-        }
+        unsafe { ffi::sfCircleShape_setRadius(self.circle_shape, radius as c_float) }
     }
 
     /// Set the radius of a circle
     ///
     /// Return the radius of the circle
     pub fn get_radius(&self) -> f32 {
-        unsafe {
-            ffi::sfCircleShape_getRadius(self.circle_shape) as f32
-        }
+        unsafe { ffi::sfCircleShape_getRadius(self.circle_shape) as f32 }
     }
 
     /// Set the number of points of a circle
@@ -148,14 +121,18 @@ impl<'s> CircleShape<'s> {
     /// # Arguments
     /// * count - New number of points of the circle
     pub fn set_point_count(&mut self, count: u32) {
-        unsafe {
-            ffi::sfCircleShape_setPointCount(self.circle_shape, count as c_uint)
-        }
+        unsafe { ffi::sfCircleShape_setPointCount(self.circle_shape, count as usize) }
+    }
+}
+
+impl<'s> Default for CircleShape<'s> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
 impl<'s> Drawable for CircleShape<'s> {
-    fn draw<RT:RenderTarget>(&self, render_target: &mut RT, render_states: &mut RenderStates) {
+    fn draw<RT: RenderTarget>(&self, render_target: &mut RT, render_states: &mut RenderStates) {
         render_target.draw_circle_shape(self, render_states)
     }
 }
@@ -170,9 +147,7 @@ impl<'s> Transformable for CircleShape<'s> {
     /// # Arguments
     /// * position - New position
     fn set_position(&mut self, position: &Vector2f) {
-        unsafe {
-            ffi::sfCircleShape_setPosition(self.circle_shape, *position)
-        }
+        unsafe { ffi::sfCircleShape_setPosition(self.circle_shape, position.raw()) }
     }
 
     /// Set the position of a circle shape
@@ -185,10 +160,7 @@ impl<'s> Transformable for CircleShape<'s> {
     /// * x - New x coordinate
     /// * y - New y coordinate
     fn set_position2f(&mut self, x: f32, y: f32) {
-        unsafe {
-            ffi::sfCircleShape_setPosition(self.circle_shape,
-                                           Vector2f::new(x, y))
-        }
+        unsafe { ffi::sfCircleShape_setPosition(self.circle_shape, sfVector2f { x: x, y: y }) }
     }
 
     /// Set the orientation of a circle shape
@@ -200,9 +172,7 @@ impl<'s> Transformable for CircleShape<'s> {
     /// # Arguments
     /// * rotation - New rotation
     fn set_rotation(&mut self, angle: f32) {
-        unsafe {
-            ffi::sfCircleShape_setRotation(self.circle_shape, angle as c_float)
-        }
+        unsafe { ffi::sfCircleShape_setRotation(self.circle_shape, angle as c_float) }
     }
 
     /// Set the scale factors of a circle shape
@@ -214,9 +184,7 @@ impl<'s> Transformable for CircleShape<'s> {
     /// # Arguments
     /// * scale - New scale factors
     fn set_scale(&mut self, scale: &Vector2f) {
-        unsafe {
-            ffi::sfCircleShape_setScale(self.circle_shape, *scale)
-        }
+        unsafe { ffi::sfCircleShape_setScale(self.circle_shape, scale.raw()) }
     }
 
     /// Set the scale factors of a circle shape
@@ -231,7 +199,10 @@ impl<'s> Transformable for CircleShape<'s> {
     fn set_scale2f(&mut self, scale_x: f32, scale_y: f32) {
         unsafe {
             ffi::sfCircleShape_setScale(self.circle_shape,
-                                        Vector2f::new(scale_x, scale_y))
+                                        sfVector2f {
+                                            x: scale_x,
+                                            y: scale_y,
+                                        })
         }
     }
 
@@ -247,9 +218,7 @@ impl<'s> Transformable for CircleShape<'s> {
     /// # Arguments
     /// * origin - New origin
     fn set_origin(&mut self, origin: &Vector2f) {
-        unsafe {
-            ffi::sfCircleShape_setOrigin(self.circle_shape, *origin)
-        }
+        unsafe { ffi::sfCircleShape_setOrigin(self.circle_shape, origin.raw()) }
     }
 
     /// Set the local origin of a circle shape
@@ -265,18 +234,14 @@ impl<'s> Transformable for CircleShape<'s> {
     /// * x - New x origin coordinate
     /// * y - New y origin coordinate
     fn set_origin2f(&mut self, x: f32, y: f32) {
-        unsafe {
-            ffi::sfCircleShape_setOrigin(self.circle_shape, Vector2f::new(x, y))
-        }
+        unsafe { ffi::sfCircleShape_setOrigin(self.circle_shape, sfVector2f { x: x, y: y }) }
     }
 
     /// Get the position of a circle shape
     ///
     /// Return the current position
     fn get_position(&self) -> Vector2f {
-        unsafe {
-            ffi::sfCircleShape_getPosition(self.circle_shape)
-        }
+        unsafe { Vector2f::from_raw(ffi::sfCircleShape_getPosition(self.circle_shape)) }
     }
 
     /// Get the orientation of a circle shape
@@ -285,27 +250,21 @@ impl<'s> Transformable for CircleShape<'s> {
     ///
     /// Return the current rotation, in degrees
     fn get_rotation(&self) -> f32 {
-        unsafe {
-            ffi::sfCircleShape_getRotation(self.circle_shape) as f32
-        }
+        unsafe { ffi::sfCircleShape_getRotation(self.circle_shape) as f32 }
     }
 
     /// Get the current scale of a circle shape
     ///
     /// Return the current scale factors
     fn get_scale(&self) -> Vector2f {
-        unsafe {
-            ffi::sfCircleShape_getScale(self.circle_shape)
-        }
+        unsafe { Vector2f::from_raw(ffi::sfCircleShape_getScale(self.circle_shape)) }
     }
 
     /// Get the local origin of a circle shape
     ///
     /// return the current origin
     fn get_origin(&self) -> Vector2f {
-        unsafe {
-            ffi::sfCircleShape_getOrigin(self.circle_shape)
-        }
+        unsafe { Vector2f::from_raw(ffi::sfCircleShape_getOrigin(self.circle_shape)) }
     }
 
     /// Move a circle shape by a given offset
@@ -316,9 +275,7 @@ impl<'s> Transformable for CircleShape<'s> {
     /// # Arguments
     /// * offset - Offset
     fn move_(&mut self, offset: &Vector2f) {
-        unsafe {
-            ffi::sfCircleShape_move(self.circle_shape, *offset)
-        }
+        unsafe { ffi::sfCircleShape_move(self.circle_shape, offset.raw()) }
     }
 
     /// Move a circle shape by a given offset
@@ -332,7 +289,10 @@ impl<'s> Transformable for CircleShape<'s> {
     fn move2f(&mut self, offset_x: f32, offset_y: f32) {
         unsafe {
             ffi::sfCircleShape_move(self.circle_shape,
-                                    Vector2f::new(offset_x, offset_y))
+                                    sfVector2f {
+                                        x: offset_x,
+                                        y: offset_y,
+                                    })
         }
     }
 
@@ -344,9 +304,7 @@ impl<'s> Transformable for CircleShape<'s> {
     /// # Arguments
     /// * angle - Angle of rotation, in degrees
     fn rotate(&mut self, angle: f32) {
-        unsafe {
-            ffi::sfCircleShape_rotate(self.circle_shape, angle as c_float)
-        }
+        unsafe { ffi::sfCircleShape_rotate(self.circle_shape, angle as c_float) }
     }
 
     /// Scale a circle shape
@@ -357,9 +315,7 @@ impl<'s> Transformable for CircleShape<'s> {
     /// # Arguments
     /// * factors - Scale factors
     fn scale(&mut self, factors: &Vector2f) {
-        unsafe {
-            ffi::sfCircleShape_scale(self.circle_shape, *factors)
-        }
+        unsafe { ffi::sfCircleShape_scale(self.circle_shape, factors.raw()) }
     }
 
     /// Scale a circle shape
@@ -373,7 +329,10 @@ impl<'s> Transformable for CircleShape<'s> {
     fn scale2f(&mut self, factor_x: f32, factor_y: f32) {
         unsafe {
             ffi::sfCircleShape_scale(self.circle_shape,
-                                     Vector2f::new(factor_x, factor_y))
+                                     sfVector2f {
+                                         x: factor_x,
+                                         y: factor_y,
+                                     })
         }
     }
 
@@ -382,18 +341,14 @@ impl<'s> Transformable for CircleShape<'s> {
     /// Return transform combining the position/rotation/scale/origin
     /// of the object
     fn get_transform(&self) -> Transform {
-        unsafe {
-            Transform(ffi::sfCircleShape_getTransform(self.circle_shape))
-        }
+        unsafe { Transform(ffi::sfCircleShape_getTransform(self.circle_shape)) }
     }
 
     /// Get the inverse of the combined transform of a circle shape
     ///
     /// Return inverse of the combined transformations applied to the object
     fn get_inverse_transform(&self) -> Transform {
-        unsafe {
-            Transform(ffi::sfCircleShape_getInverseTransform(self.circle_shape))
-        }
+        unsafe { Transform(ffi::sfCircleShape_getInverseTransform(self.circle_shape)) }
     }
 }
 
@@ -413,12 +368,12 @@ impl<'s> Shape<'s> for CircleShape<'s> {
     /// # Arguments
     /// * texture - New texture
     /// * reset_rect - Should the texture rect be reset to the size of the new texture?
-    fn set_texture(&mut self,
-                       texture: &'s Texture,
-                       reset_rect: bool) {
+    fn set_texture(&mut self, texture: &'s Texture, reset_rect: bool) {
         self.texture = Some(texture);
         unsafe {
-            ffi::sfCircleShape_setTexture(self.circle_shape, texture.raw(), sfBool::from_bool(reset_rect))
+            ffi::sfCircleShape_setTexture(self.circle_shape,
+                                          texture.raw(),
+                                          sfBool::from_bool(reset_rect))
         }
     }
 
@@ -427,11 +382,7 @@ impl<'s> Shape<'s> for CircleShape<'s> {
     /// Disable the current texture and reset the texture rect
     fn disable_texture(&mut self) {
         self.texture = None;
-        unsafe {
-            ffi::sfCircleShape_setTexture(self.circle_shape,
-                                          ptr::null_mut(),
-                                          sfBool::SFTRUE)
-        }
+        unsafe { ffi::sfCircleShape_setTexture(self.circle_shape, ptr::null_mut(), sfTrue) }
     }
 
     /// Set the sub-rectangle of the texture that a circle shape will display
@@ -443,9 +394,7 @@ impl<'s> Shape<'s> for CircleShape<'s> {
     /// # Arguments
     /// * rec - Rectangle defining the region of the texture to display
     fn set_texture_rect(&mut self, rect: &IntRect) {
-        unsafe {
-            ffi::sfCircleShape_setTextureRect(self.circle_shape, *rect)
-        }
+        unsafe { ffi::sfCircleShape_setTextureRect(self.circle_shape, rect.raw()) }
     }
 
     /// Set the fill color of a circle shape
@@ -460,9 +409,7 @@ impl<'s> Shape<'s> for CircleShape<'s> {
     /// # Arguments
     /// * color - New color of the shape
     fn set_fill_color(&mut self, color: &Color) {
-        unsafe {
-            ffi::sfCircleShape_setFillColor(self.circle_shape, color.0)
-        }
+        unsafe { ffi::sfCircleShape_setFillColor(self.circle_shape, color.0) }
     }
 
     /// Set the outline color of a circle shape
@@ -473,9 +420,7 @@ impl<'s> Shape<'s> for CircleShape<'s> {
     /// # Arguments
     /// * color - New outline color of the shape
     fn set_outline_color(&mut self, color: &Color) {
-        unsafe {
-            ffi::sfCircleShape_setOutlineColor(self.circle_shape, color.0)
-        }
+        unsafe { ffi::sfCircleShape_setOutlineColor(self.circle_shape, color.0) }
     }
 
     /// Set the thickness of a circle shape's outline
@@ -487,10 +432,7 @@ impl<'s> Shape<'s> for CircleShape<'s> {
     /// # Arguments
     /// * thickness - New outline thickness
     fn set_outline_thickness(&mut self, thickness: f32) {
-        unsafe {
-            ffi::sfCircleShape_setOutlineThickness(self.circle_shape,
-                                                   thickness as c_float)
-        }
+        unsafe { ffi::sfCircleShape_setOutlineThickness(self.circle_shape, thickness as c_float) }
     }
 
     /// Get the source texture of a circle shape
@@ -507,45 +449,35 @@ impl<'s> Shape<'s> for CircleShape<'s> {
     ///
     /// Return the texture rectangle of the shape
     fn get_texture_rect(&self) -> IntRect {
-        unsafe {
-            ffi::sfCircleShape_getTextureRect(self.circle_shape)
-        }
+        unsafe { IntRect::from_raw(ffi::sfCircleShape_getTextureRect(self.circle_shape)) }
     }
 
     /// Get the fill color of a circle shape
     ///
     /// Return the fill color of the shape
     fn get_fill_color(&self) -> Color {
-        unsafe {
-            Color(ffi::sfCircleShape_getFillColor(self.circle_shape))
-        }
+        unsafe { Color(ffi::sfCircleShape_getFillColor(self.circle_shape)) }
     }
 
     /// Get the outline color of a circle shape
     ///
     /// Return the outline color of the shape
     fn get_outline_color(&self) -> Color {
-        unsafe {
-            Color(ffi::sfCircleShape_getOutlineColor(self.circle_shape))
-        }
+        unsafe { Color(ffi::sfCircleShape_getOutlineColor(self.circle_shape)) }
     }
 
     /// Get the outline thickness of a circle shape
     ///
     /// Return the outline thickness of the shape
     fn get_outline_thickness(&self) -> f32 {
-        unsafe {
-            ffi::sfCircleShape_getOutlineThickness(self.circle_shape) as f32
-        }
+        unsafe { ffi::sfCircleShape_getOutlineThickness(self.circle_shape) as f32 }
     }
 
     /// Get the total number of points of a circle shape
     ///
     /// Return the number of points of the shape
     fn get_point_count(&self) -> u32 {
-        unsafe {
-            ffi::sfCircleShape_getPointCount(self.circle_shape) as u32
-        }
+        unsafe { ffi::sfCircleShape_getPointCount(self.circle_shape) as u32 }
     }
 
     /// Get a point of a circle shape
@@ -558,7 +490,7 @@ impl<'s> Shape<'s> for CircleShape<'s> {
     /// Return the index-th point of the shape
     fn get_point(&self, index: u32) -> Vector2f {
         unsafe {
-            ffi::sfCircleShape_getPoint(self.circle_shape, index as c_uint)
+            Vector2f::from_raw(ffi::sfCircleShape_getPoint(self.circle_shape, index as usize))
         }
     }
 
@@ -572,9 +504,7 @@ impl<'s> Shape<'s> for CircleShape<'s> {
     ///
     /// Return the local bounding rectangle of the entity
     fn get_local_bounds(&self) -> FloatRect {
-        unsafe {
-            ffi::sfCircleShape_getLocalBounds(self.circle_shape)
-        }
+        unsafe { FloatRect::from_raw(ffi::sfCircleShape_getLocalBounds(self.circle_shape)) }
     }
 
     /// Get the global bounding rectangle of a circle shape
@@ -587,9 +517,7 @@ impl<'s> Shape<'s> for CircleShape<'s> {
     ///
     /// Return the global bounding rectangle of the entity
     fn get_global_bounds(&self) -> FloatRect {
-        unsafe {
-            ffi::sfCircleShape_getGlobalBounds(self.circle_shape)
-        }
+        unsafe { FloatRect::from_raw(ffi::sfCircleShape_getGlobalBounds(self.circle_shape)) }
     }
 }
 
@@ -601,8 +529,8 @@ impl<'s> Clone for CircleShape<'s> {
             panic!("Not enough memory to clone CircleShape")
         } else {
             CircleShape {
-                circle_shape:  circle,
-                texture:       self.texture
+                circle_shape: circle,
+                texture: self.texture,
             }
         }
     }
@@ -612,9 +540,7 @@ impl<'s> Clone for CircleShape<'s> {
 impl<'s> Drop for CircleShape<'s> {
     /// Destroy an existing CircleShape
     fn drop(&mut self) {
-        unsafe {
-            ffi::sfCircleShape_destroy(self.circle_shape)
-        }
+        unsafe { ffi::sfCircleShape_destroy(self.circle_shape) }
     }
 }
 

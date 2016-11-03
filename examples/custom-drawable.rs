@@ -2,7 +2,7 @@ extern crate sfml;
 
 use sfml::graphics::{CircleShape, Color, Drawable, RectangleShape, RenderStates, RenderTarget,
                      RenderWindow, Shape, Transformable};
-use sfml::window::{Key, VideoMode, event, window_style};
+use sfml::window::{Key, VideoMode, Event, window_style};
 use sfml::system::Vector2f;
 
 /// Our custom drawable type. It looks like a bullet.
@@ -13,14 +13,13 @@ struct Bullet<'s> {
 
 impl<'s> Bullet<'s> {
     pub fn new() -> Self {
-        let mut head = CircleShape::new_init(50f32, 50).unwrap();
+        let mut head = CircleShape::new_init(50f32, 50);
         head.set_position2f(100f32, 100f32);
         head.set_fill_color(&Color::red());
-        let mut torso = RectangleShape::new_init(&Vector2f {
-                            x: 100f32,
-                            y: 200f32,
-                        })
-                            .unwrap();
+        let mut torso = RectangleShape::with_size(&Vector2f {
+            x: 100f32,
+            y: 200f32,
+        });
         torso.set_position2f(100f32, 150f32);
         torso.set_fill_color(&Color::blue());
 
@@ -44,7 +43,7 @@ fn main() {
                                        "Custom drawable",
                                        window_style::CLOSE,
                                        &Default::default())
-                         .unwrap();
+        .unwrap();
     window.set_vertical_sync_enabled(true);
 
     let bullet = Bullet::new();
@@ -52,8 +51,8 @@ fn main() {
     loop {
         for event in window.events() {
             match event {
-                event::Closed => return,
-                event::KeyPressed { code: Key::Escape, .. } => return,
+                Event::Closed |
+                Event::KeyPressed { code: Key::Escape, .. } => return,
                 _ => {}
             }
         }

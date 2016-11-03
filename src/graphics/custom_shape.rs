@@ -1,63 +1,62 @@
-/*
-* Rust-SFML - Copyright (c) 2013 Letang Jeremy.
-*
-* The original software, SFML library, is provided by Laurent Gomila.
-*
-* This software is provided 'as-is', without any express or implied warranty.
-* In no event will the authors be held liable for any damages arising from
-* the use of this software.
-*
-* Permission is granted to anyone to use this software for any purpose,
-* including commercial applications, and to alter it and redistribute it
-* freely, subject to the following restrictions:
-*
-* 1. The origin of this software must not be misrepresented; you must not claim
-*    that you wrote the original software. If you use this software in a product,
-*    an acknowledgment in the product documentation would be appreciated but is
-*    not required.
-*
-* 2. Altered source versions must be plainly marked as such, and must not be
-*    misrepresented as being the original software.
-*
-* 3. This notice may not be removed or altered from any source distribution.
-*/
+// Rust-SFML - Copyright (c) 2013 Letang Jeremy.
+//
+// The original software, SFML library, is provided by Laurent Gomila.
+//
+// This software is provided 'as-is', without any express or implied warranty.
+// In no event will the authors be held liable for any damages arising from
+// the use of this software.
+//
+// Permission is granted to anyone to use this software for any purpose,
+// including commercial applications, and to alter it and redistribute it
+// freely, subject to the following restrictions:
+//
+// 1. The origin of this software must not be misrepresented; you must not claim
+//    that you wrote the original software. If you use this software in a product,
+//    an acknowledgment in the product documentation would be appreciated but is
+//    not required.
+//
+// 2. Altered source versions must be plainly marked as such, and must not be
+//    misrepresented as being the original software.
+//
+// 3. This notice may not be removed or altered from any source distribution.
+//
 
 //! Base class for textured shapes with outline
 
-use libc::{c_void, c_float, c_uint};
+use std::os::raw::{c_void, c_float};
 use std::{ptr, mem};
 
-use raw_conv::Raw;
+use raw_conv::{Raw, FromRaw};
 use graphics::shape::ShapeImpl;
-use graphics::{Drawable, Transformable, RenderTarget, RenderStates, Texture, Color,
-               Transform, IntRect, FloatRect};
-use sfml_types::{sfBool, Vector2f};
+use graphics::{Drawable, Transformable, RenderTarget, RenderStates, Texture, Color, Transform,
+               IntRect, FloatRect};
+use system::Vector2f;
 use csfml_graphics_sys as ffi;
-
-// pub mod rc;
+use csfml_system_sys::{sfBool, sfTrue, sfVector2f};
+use ext::sf_bool_ext::SfBoolExt;
 
 struct WrapObj {
-    shape_impl: Box<ShapeImpl + Send>
+    shape_impl: Box<ShapeImpl + Send>,
 }
 
 /// Base class for textured shapes with outline
 pub struct CustomShape<'s> {
-    shape:     *mut ffi::sfShape,
-    texture:  Option<&'s Texture>
+    shape: *mut ffi::sfShape,
+    texture: Option<&'s Texture>,
 }
 
-extern fn get_point_count_callback(obj: *mut c_void) -> u32 {
-    let shape = unsafe { mem::transmute::<*mut c_void, Box<Box<WrapObj>>>(obj) };
+unsafe extern "C" fn get_point_count_callback(obj: *mut c_void) -> usize {
+    let shape = mem::transmute::<*mut c_void, Box<Box<WrapObj>>>(obj);
     let ret = shape.shape_impl.get_point_count();
     mem::forget(shape);
-    ret
+    ret as usize
 }
 
-extern fn get_point_callback(point: u32, obj: *mut c_void) -> Vector2f {
-    let shape = unsafe { mem::transmute::<*mut c_void, Box<Box<WrapObj>>>(obj) };
-    let ret = shape.shape_impl.get_point(point);
+unsafe extern "C" fn get_point_callback(point: usize, obj: *mut c_void) -> sfVector2f {
+    let shape = mem::transmute::<*mut c_void, Box<Box<WrapObj>>>(obj);
+    let ret = shape.shape_impl.get_point(point as u32);
     mem::forget(shape);
-    ret
+    ret.raw()
 }
 
 
@@ -66,20 +65,20 @@ impl<'s> CustomShape<'s> {
     ///
     /// # Arguments
     /// * shape_impl - Implementation of ShapeImpl
-    ///
-    /// Return Some(CustomShape) or None
-    pub fn new(shape_impl: Box<ShapeImpl + Send>) -> Option<CustomShape<'s>> {
-        let w_o = Box::new(WrapObj { shape_impl: shape_impl});
-        let sp = unsafe { ffi::sfShape_create(get_point_count_callback,
-                                              get_point_callback,
-                                              mem::transmute::<Box<Box<WrapObj>>, *mut c_void>(Box::new(w_o))) };
+    pub fn new(shape_impl: Box<ShapeImpl + Send>) -> CustomShape<'s> {
+        let w_o = Box::new(WrapObj { shape_impl: shape_impl });
+        let sp = unsafe {
+            ffi::sfShape_create(Some(get_point_count_callback),
+                                Some(get_point_callback),
+                                mem::transmute::<Box<Box<WrapObj>>, *mut c_void>(Box::new(w_o)))
+        };
         if sp.is_null() {
-            None
+            panic!("sfShape_create returned null.")
         } else {
-            Some(CustomShape {
-                    shape:     sp,
-                    texture:   None
-                })
+            CustomShape {
+                shape: sp,
+                texture: None,
+            }
         }
     }
 
@@ -88,24 +87,25 @@ impl<'s> CustomShape<'s> {
     /// # Arguments
     /// * shape_impl - Implementation of ShapeImpl trait
     /// * texture - The texture to bind to the CustomShape
-    ///
-    /// Return Some(CustomShape) or None
-    pub fn new_with_texture(shape_impl: Box<ShapeImpl + Send>,
-                            texture: &'s Texture) -> Option<CustomShape<'s>> {
+    pub fn with_texture(shape_impl: Box<ShapeImpl + Send>,
+                        texture: &'s Texture)
+                        -> CustomShape<'s> {
         let w_o = Box::new(WrapObj { shape_impl: shape_impl });
-        let sp = unsafe { ffi::sfShape_create(get_point_count_callback,
-                                              get_point_callback,
-                                              mem::transmute::<Box<Box<WrapObj>>, *mut c_void>(Box::new(w_o))) };
+        let sp = unsafe {
+            ffi::sfShape_create(Some(get_point_count_callback),
+                                Some(get_point_callback),
+                                mem::transmute::<Box<Box<WrapObj>>, *mut c_void>(Box::new(w_o)))
+        };
         if sp.is_null() {
-            None
+            panic!("sfShape_create returned null.")
         } else {
             unsafe {
-                ffi::sfShape_setTexture(sp, texture.raw(), sfBool::SFTRUE);
+                ffi::sfShape_setTexture(sp, texture.raw(), sfTrue);
             }
-            Some(CustomShape {
-                    shape:     sp,
-                    texture:   Some(texture)
-                })
+            CustomShape {
+                shape: sp,
+                texture: Some(texture),
+            }
         }
     }
 
@@ -122,13 +122,9 @@ impl<'s> CustomShape<'s> {
     /// # Arguments
     /// * texture - The new texture
     /// * reset_rect - Should the texture rect be reset to the size of the new texture?
-    pub fn set_texture(&mut self,
-                       texture: &'s Texture,
-                       reset_rect: bool) {
+    pub fn set_texture(&mut self, texture: &'s Texture, reset_rect: bool) {
         self.texture = Some(texture);
-        unsafe {
-            ffi::sfShape_setTexture(self.shape, texture.raw(), sfBool::from_bool(reset_rect))
-        }
+        unsafe { ffi::sfShape_setTexture(self.shape, texture.raw(), sfBool::from_bool(reset_rect)) }
     }
 
     /// Disable Texturing
@@ -136,9 +132,7 @@ impl<'s> CustomShape<'s> {
     /// Disable the current texture and reset the texture rect
     pub fn disable_texture(&mut self) {
         self.texture = None;
-        unsafe {
-            ffi::sfShape_setTexture(self.shape, ptr::null_mut(), sfBool::SFTRUE)
-        }
+        unsafe { ffi::sfShape_setTexture(self.shape, ptr::null_mut(), sfTrue) }
     }
 
     /// Set the sub-rectangle of the texture that a shape will display
@@ -150,9 +144,7 @@ impl<'s> CustomShape<'s> {
     /// # Arguments
     /// * rect - The rectangle defining the region of the texture to display
     pub fn set_texture_rect(&mut self, rect: &IntRect) {
-        unsafe {
-            ffi::sfShape_setTextureRect(self.shape, *rect)
-        }
+        unsafe { ffi::sfShape_setTextureRect(self.shape, rect.raw()) }
     }
 
     /// Set the fill color of a shape
@@ -167,9 +159,7 @@ impl<'s> CustomShape<'s> {
     /// # Arguments
     /// * color - The new color of the Shape
     pub fn set_fill_color(&mut self, color: &Color) {
-        unsafe {
-            ffi::sfShape_setFillColor(self.shape, color.0)
-        }
+        unsafe { ffi::sfShape_setFillColor(self.shape, color.0) }
     }
 
     /// Set the outline color of a shape
@@ -180,9 +170,7 @@ impl<'s> CustomShape<'s> {
     /// # Arguments
     /// * color - The new outline color of the shape
     pub fn set_outline_color(&mut self, color: &Color) {
-        unsafe {
-            ffi::sfShape_setOutlineColor(self.shape, color.0)
-        }
+        unsafe { ffi::sfShape_setOutlineColor(self.shape, color.0) }
     }
 
     /// Set the thickness of a shape's outline
@@ -194,9 +182,7 @@ impl<'s> CustomShape<'s> {
     /// # Arguments
     /// * thickness - The new outline thickness
     pub fn set_outline_thickness(&mut self, thickness: f32) {
-        unsafe {
-            ffi::sfShape_setOutlineThickness(self.shape, thickness as c_float)
-        }
+        unsafe { ffi::sfShape_setOutlineThickness(self.shape, thickness as c_float) }
     }
 
     /// Get the source texture of a shape
@@ -214,45 +200,35 @@ impl<'s> CustomShape<'s> {
     ///
     /// Return the texture rectangle of the shape
     pub fn get_texture_rect(&self) -> IntRect {
-        unsafe {
-            ffi::sfShape_getTextureRect(self.shape)
-        }
+        unsafe { IntRect::from_raw(ffi::sfShape_getTextureRect(self.shape)) }
     }
 
     /// Get the fill color of a shape
     ///
     /// Return the fill color of the shape
     pub fn get_fill_color(&self) -> Color {
-        unsafe {
-            Color(ffi::sfShape_getFillColor(self.shape))
-        }
+        unsafe { Color(ffi::sfShape_getFillColor(self.shape)) }
     }
 
     /// Get the outline color of a shape
     ///
     /// Return the outline color of the shape
     pub fn get_outline_color(&self) -> Color {
-        unsafe {
-            Color(ffi::sfShape_getOutlineColor(self.shape))
-        }
+        unsafe { Color(ffi::sfShape_getOutlineColor(self.shape)) }
     }
 
     /// Get the outline thickness of a shape
     ///
     /// Return the outline thickness of the shape
     pub fn get_outline_thickness(&self) -> f32 {
-        unsafe {
-            ffi::sfShape_getOutlineThickness(self.shape) as f32
-        }
+        unsafe { ffi::sfShape_getOutlineThickness(self.shape) as f32 }
     }
 
     /// Get the total number of points of a shape
     ///
     /// Return the number of points of the shape
     pub fn get_point_count(&self) -> u32 {
-        unsafe {
-            ffi::sfShape_getPointCount(self.shape) as u32
-        }
+        unsafe { ffi::sfShape_getPointCount(self.shape) as u32 }
     }
 
     /// Get a point of a shape
@@ -264,9 +240,7 @@ impl<'s> CustomShape<'s> {
     ///
     /// Return the index-th point of the shape
     pub fn get_point(&self, index: u32) -> Vector2f {
-        unsafe {
-            ffi::sfShape_getPoint(self.shape, index as c_uint)
-        }
+        unsafe { Vector2f::from_raw(ffi::sfShape_getPoint(self.shape, index as usize)) }
     }
 
     /// Get the local bounding rectangle of a shape
@@ -279,9 +253,7 @@ impl<'s> CustomShape<'s> {
     ///
     /// Return the local bounding rectangle of the entity
     pub fn get_local_bounds(&self) -> FloatRect {
-        unsafe {
-            ffi::sfShape_getLocalBounds(self.shape)
-        }
+        unsafe { FloatRect::from_raw(ffi::sfShape_getLocalBounds(self.shape)) }
     }
 
     /// Get the global bounding rectangle of a shape
@@ -294,9 +266,7 @@ impl<'s> CustomShape<'s> {
     ///
     /// Return the global bounding rectangle of the entity
     pub fn get_global_bounds(&self) -> FloatRect {
-        unsafe {
-            ffi::sfShape_getGlobalBounds(self.shape)
-        }
+        unsafe { FloatRect::from_raw(ffi::sfShape_getGlobalBounds(self.shape)) }
     }
 
     /// Recompute the internal geometry of a shape
@@ -305,9 +275,7 @@ impl<'s> CustomShape<'s> {
     /// everytime their points change (ie. the result of either
     /// the getPointCount or getPoint callbacks is different).
     pub fn update(&mut self) {
-        unsafe {
-            ffi::sfShape_update(self.shape)
-        }
+        unsafe { ffi::sfShape_update(self.shape) }
     }
 }
 
@@ -319,9 +287,7 @@ impl<'s> Raw for CustomShape<'s> {
 }
 
 impl<'s> Drawable for CustomShape<'s> {
-    fn draw<RT: RenderTarget>(&self,
-                                 render_target: &mut RT,
-                                 render_states: &mut RenderStates) {
+    fn draw<RT: RenderTarget>(&self, render_target: &mut RT, render_states: &mut RenderStates) {
         render_target.draw_shape(self, render_states)
     }
 }
@@ -336,9 +302,7 @@ impl<'s> Transformable for CustomShape<'s> {
     /// # Arguments
     /// * position - The new position of the Shape
     fn set_position(&mut self, position: &Vector2f) {
-        unsafe {
-            ffi::sfShape_setPosition(self.shape, *position)
-        }
+        unsafe { ffi::sfShape_setPosition(self.shape, position.raw()) }
     }
 
     /// Set the position of a shape
@@ -351,9 +315,7 @@ impl<'s> Transformable for CustomShape<'s> {
     /// * x - The new x position of the Shape
     /// * y - The new y position of the Shape
     fn set_position2f(&mut self, x: f32, y: f32) {
-        unsafe {
-            ffi::sfShape_setPosition(self.shape, Vector2f::new(x, y))
-        }
+        unsafe { ffi::sfShape_setPosition(self.shape, sfVector2f { x: x, y: y }) }
     }
 
     /// Set the orientation of a shape
@@ -365,9 +327,7 @@ impl<'s> Transformable for CustomShape<'s> {
     /// # Arguments
     /// * angle - The new rotation, in degrees
     fn set_rotation(&mut self, angle: f32) {
-        unsafe {
-            ffi::sfShape_setRotation(self.shape, angle as c_float)
-        }
+        unsafe { ffi::sfShape_setRotation(self.shape, angle as c_float) }
     }
 
     /// Set the scale factors of a shape
@@ -379,9 +339,7 @@ impl<'s> Transformable for CustomShape<'s> {
     /// # Arguments
     /// scale - The new scale factors
     fn set_scale(&mut self, scale: &Vector2f) {
-        unsafe {
-            ffi::sfShape_setScale(self.shape, *scale)
-        }
+        unsafe { ffi::sfShape_setScale(self.shape, scale.raw()) }
     }
 
     /// Set the scale factors of a shape
@@ -395,7 +353,11 @@ impl<'s> Transformable for CustomShape<'s> {
     /// scale_y - The new y scale factors
     fn set_scale2f(&mut self, scale_x: f32, scale_y: f32) {
         unsafe {
-            ffi::sfShape_setScale(self.shape, Vector2f::new(scale_x, scale_y))
+            ffi::sfShape_setScale(self.shape,
+                                  sfVector2f {
+                                      x: scale_x,
+                                      y: scale_y,
+                                  })
         }
     }
 
@@ -411,9 +373,7 @@ impl<'s> Transformable for CustomShape<'s> {
     /// # Arguments
     /// * origin - The new origin
     fn set_origin(&mut self, origin: &Vector2f) {
-        unsafe {
-            ffi::sfShape_setOrigin(self.shape, *origin)
-        }
+        unsafe { ffi::sfShape_setOrigin(self.shape, origin.raw()) }
     }
 
     /// Set the local origin of a shape
@@ -429,18 +389,14 @@ impl<'s> Transformable for CustomShape<'s> {
     /// * x - The new x origin
     /// * y - The new y origin
     fn set_origin2f(&mut self, x: f32, y: f32) {
-        unsafe {
-            ffi::sfShape_setOrigin(self.shape, Vector2f::new(x, y))
-        }
+        unsafe { ffi::sfShape_setOrigin(self.shape, sfVector2f { x: x, y: y }) }
     }
 
     /// Get the position of a shape
     ///
     /// Return the current position
     fn get_position(&self) -> Vector2f {
-        unsafe {
-            ffi::sfShape_getPosition(self.shape)
-        }
+        unsafe { Vector2f::from_raw(ffi::sfShape_getPosition(self.shape)) }
     }
 
     /// Get the orientation of a shape
@@ -449,27 +405,21 @@ impl<'s> Transformable for CustomShape<'s> {
     ///
     /// Return the current rotation, in degrees
     fn get_rotation(&self) -> f32 {
-        unsafe {
-            ffi::sfShape_getRotation(self.shape) as f32
-        }
+        unsafe { ffi::sfShape_getRotation(self.shape) as f32 }
     }
 
     /// Get the current scale of a shape
     ///
     /// Return the current scale factors
     fn get_scale(&self) -> Vector2f {
-        unsafe {
-            ffi::sfShape_getScale(self.shape)
-        }
+        unsafe { Vector2f::from_raw(ffi::sfShape_getScale(self.shape)) }
     }
 
     /// Get the local origin of a shape
     ///
     /// Return the current origin
     fn get_origin(&self) -> Vector2f {
-        unsafe {
-            ffi::sfShape_getOrigin(self.shape)
-        }
+        unsafe { Vector2f::from_raw(ffi::sfShape_getOrigin(self.shape)) }
     }
 
     /// Move a shape by a given offset
@@ -480,9 +430,7 @@ impl<'s> Transformable for CustomShape<'s> {
     /// # Arguments
     /// * offset - Offset
     fn move_(&mut self, offset: &Vector2f) {
-        unsafe {
-            ffi::sfShape_move(self.shape, *offset)
-        }
+        unsafe { ffi::sfShape_move(self.shape, offset.raw()) }
     }
 
     /// Move a shape by a given offset
@@ -495,7 +443,11 @@ impl<'s> Transformable for CustomShape<'s> {
     /// * offset_y - Offset y
     fn move2f(&mut self, offset_x: f32, offset_y: f32) {
         unsafe {
-            ffi::sfShape_move(self.shape, Vector2f::new(offset_x, offset_y))
+            ffi::sfShape_move(self.shape,
+                              sfVector2f {
+                                  x: offset_x,
+                                  y: offset_y,
+                              })
         }
     }
 
@@ -507,9 +459,7 @@ impl<'s> Transformable for CustomShape<'s> {
     /// # Arguments
     /// * angle - The angle of rotation, in degrees
     fn rotate(&mut self, angle: f32) {
-        unsafe {
-            ffi::sfShape_rotate(self.shape, angle as c_float)
-        }
+        unsafe { ffi::sfShape_rotate(self.shape, angle as c_float) }
     }
 
     /// Scale a shape
@@ -520,9 +470,7 @@ impl<'s> Transformable for CustomShape<'s> {
     /// # Arguments
     /// * factors - Scale factors
     fn scale(&mut self, factors: &Vector2f) {
-        unsafe {
-            ffi::sfShape_scale(self.shape, *factors)
-        }
+        unsafe { ffi::sfShape_scale(self.shape, factors.raw()) }
     }
 
     /// Scale a shape
@@ -535,7 +483,11 @@ impl<'s> Transformable for CustomShape<'s> {
     /// * factor_y - y Scale factors
     fn scale2f(&mut self, factor_x: f32, factor_y: f32) {
         unsafe {
-            ffi::sfShape_scale(self.shape, Vector2f::new(factor_x, factor_y))
+            ffi::sfShape_scale(self.shape,
+                               sfVector2f {
+                                   x: factor_x,
+                                   y: factor_y,
+                               })
         }
     }
 
@@ -544,26 +496,19 @@ impl<'s> Transformable for CustomShape<'s> {
     /// Return the transform combining the position/rotation/scale/origin
     /// of the object
     fn get_transform(&self) -> Transform {
-        unsafe {
-            Transform(ffi::sfShape_getTransform(self.shape))
-        }
+        unsafe { Transform(ffi::sfShape_getTransform(self.shape)) }
     }
 
     /// Get the inverse of the combined transform of a shape
     ///
     /// Return the inverse of the combined transformations applied to the object
     fn get_inverse_transform(&self) -> Transform {
-        unsafe {
-            Transform(ffi::sfShape_getInverseTransform(self.shape))
-        }
+        unsafe { Transform(ffi::sfShape_getInverseTransform(self.shape)) }
     }
-
 }
 
 impl<'s> Drop for CustomShape<'s> {
     fn drop(&mut self) {
-        unsafe {
-            ffi::sfShape_destroy(self.shape)
-        }
+        unsafe { ffi::sfShape_destroy(self.shape) }
     }
 }

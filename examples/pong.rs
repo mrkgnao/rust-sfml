@@ -3,7 +3,7 @@ extern crate rand;
 
 use sfml::graphics::{CircleShape, Color, Font, RectangleShape, RenderTarget, RenderWindow, Shape,
                      Text, Transformable};
-use sfml::window::{ContextSettings, Key, VideoMode, event, window_style};
+use sfml::window::{ContextSettings, Key, VideoMode, Event, window_style};
 use sfml::system::{Clock, Time, Vector2f};
 use sfml::audio::{Sound, SoundBuffer, SoundSource};
 use rand::{Rng, thread_rng};
@@ -30,19 +30,18 @@ fn main() {
     let mut window = RenderWindow::new(VideoMode::new_init(game_width, game_height, 32),
                                        "SFML Pong",
                                        window_style::CLOSE,
-                                       &ContextSettings::new()
-                                            .antialiasing_level(aa_level))
-                         .unwrap();
+                                       ContextSettings::new().antialiasing(aa_level))
+        .unwrap();
     window.set_vertical_sync_enabled(true);
 
     // Load the sounds used in the game
     let ball_soundbuffer = SoundBuffer::new("resources/ball.wav").unwrap();
 
-    let mut ball_sound = Sound::new_with_buffer(&ball_soundbuffer).unwrap();
+    let mut ball_sound = Sound::with_buffer(&ball_soundbuffer);
     ball_sound.set_volume(100.);
 
     // Create the left paddle
-    let mut left_paddle = RectangleShape::new().unwrap();
+    let mut left_paddle = RectangleShape::new();
     left_paddle.set_size(&(paddle_size - 3f32));
     left_paddle.set_outline_thickness(3.);
     left_paddle.set_outline_color(&Color::black());
@@ -50,7 +49,7 @@ fn main() {
     left_paddle.set_origin(&(paddle_size / 2f32));
 
     // Create the right paddle
-    let mut right_paddle = RectangleShape::new().unwrap();
+    let mut right_paddle = RectangleShape::new();
     right_paddle.set_size(&(paddle_size - 3f32));
     right_paddle.set_outline_thickness(3.);
     right_paddle.set_outline_color(&Color::black());
@@ -58,7 +57,7 @@ fn main() {
     right_paddle.set_origin(&(paddle_size / 2f32));
 
     // Create the ball
-    let mut ball = CircleShape::new().unwrap();
+    let mut ball = CircleShape::new();
     ball.set_radius(ball_radius as f32 - 3.);
     ball.set_outline_thickness(3.);
     ball.set_outline_color(&Color::black());
@@ -66,10 +65,10 @@ fn main() {
     ball.set_origin(&Vector2f::new(ball_radius / 2., ball_radius / 2.));
 
     // Load the text font
-    let font = Font::new_from_file("resources/sansation.ttf").unwrap();
+    let font = Font::from_file("resources/sansation.ttf").unwrap();
 
     // Initialize the pause message
-    let mut pause_message = Text::new().unwrap();
+    let mut pause_message = Text::new();
     pause_message.set_font(&font);
     pause_message.set_character_size(40);
     pause_message.set_position(&(Vector2f::new(170., 150.)));
@@ -92,8 +91,8 @@ fn main() {
     loop {
         for event in window.events() {
             match event {
-                event::Closed => return,
-                event::KeyPressed { code, .. } => {
+                Event::Closed => return,
+                Event::KeyPressed { code, .. } => {
                     match code {
                         Key::Escape => return,
                         Key::Space => {
@@ -153,7 +152,7 @@ fn main() {
                    right_paddle.get_position().y + paddle_size.y / 2. {
                     right_paddle_speed = paddle_speed;
                 } else if ball.get_position().y - ball_radius <
-                   right_paddle.get_position().y - paddle_size.y / 2. {
+                          right_paddle.get_position().y - paddle_size.y / 2. {
                     right_paddle_speed = -paddle_speed;
                 } else {
                     right_paddle_speed = 0.;

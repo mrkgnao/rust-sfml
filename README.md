@@ -1,17 +1,15 @@
-rust-sfml [![Build Status](https://api.travis-ci.org/jeremyletang/rust-sfml.png?branch=master)](https://travis-ci.org/jeremyletang/rust-sfml) [![crates.io](http://meritbadge.herokuapp.com/sfml)](https://crates.io/crates/sfml) [![Clippy Linting Result](http://clippy.bashy.io/github/jeremyletang/rust-sfml/master/badge.svg)](http://clippy.bashy.io/github/jeremyletang/rust-sfml/master/log)
+rust-sfml [![Build Status](https://api.travis-ci.org/jeremyletang/rust-sfml.png?branch=master)](https://travis-ci.org/jeremyletang/rust-sfml) [![crates.io](http://meritbadge.herokuapp.com/sfml)](https://crates.io/crates/sfml) [![Join the chat at https://gitter.im/rust-sfml/Lobby](https://badges.gitter.im/rust-sfml/Lobby.svg)](https://gitter.im/rust-sfml/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 =========
 
 Rust bindings for [SFML](http://www.sfml-dev.org), the Simple and Fast Multimedia Library.
 
-Prerequisites
+Requirements
 =============
 
-SFML 2.3 and CSFML 2.3 must be installed on your computer. You can download them here:
-
-- SFML 2.3: http://www.sfml-dev.org/download.php
-- CSFML 2.3: http://www.sfml-dev.org/download/csfml/
-
-Rust-sfml works on Linux, Windows and OSX.
+- Linux, Windows, or OS X
+- Latest stable Rust
+- [SFML 2.3](http://www.sfml-dev.org/download.php)
+- [CSFML 2.3](http://www.sfml-dev.org/download/csfml/)
 
 Examples
 =============
